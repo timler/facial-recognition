@@ -18,7 +18,7 @@ This script performs facial recognition using the `face_recognition` library. It
 Before running the script, you need to install the following:
 
 - Python 3.x
-- OpenCV (`opencv-python`)
+- `opencv-python` OpenCV library
 - `face_recognition` library
 - `face_recognition_models` (for face recognition models used by the face_recognition library)
 - `numpy` (used by OpenCV and in the script)
@@ -28,8 +28,10 @@ Before running the script, you need to install the following:
 You can install the required libraries using `pip`:
 
 ```bash
-pip install opencv-python numpy matplotlib face_recognition git+https://github.com/ageitgey/face_recognition_models
+pip install python-dotenv opencv-python numpy matplotlib face_recognition git+https://github.com/ageitgey/face_recognition_models
 ```
+
+Note: you may need to install `cmake` and `python setuptools` to complete the installation of the face recognition models.
 
 ### Environment variables
 
@@ -40,8 +42,8 @@ Before running the script, rename `.env.example` to `.env` and update the variab
 To use the script, follow these steps:
 
 1. Clone the repository or download the script to your local machine.
-2. Place known face images in the `face_database/known` directory, with each person's images in a separate subfolder named after them.
-3. Run the script from the terminal:
+2. Rename `.env.example` to `.env`
+2. Run the script from the terminal:
 
 ```bash
 python facial_recognition.py
