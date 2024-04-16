@@ -69,7 +69,13 @@ Follow these steps to install and set up the project:
     pip3 install -e .
     ```
 
-5. **Set Environment Variables**: Set the necessary environment variables for the facial recognition model, tolerance, and face database directory. You can do this in your terminal or add them to your `.env` file if you have one.
+5. **Set Environment Variables**: Set the necessary environment variables for the facial recognition model, tolerance, and face database directory. You can do this in your terminal or by creating a `.env` file in the project directory. 
+
+    To create the `.env` file, you can copy the `.env.example` file and rename it to `.env`. Then, update the values in the `.env` file with your desired configuration.
+
+    ```bash
+    cp .env.example .env
+    ```
 
 6. **Run the Application**: Finally, you can run the application with the following command:
 
