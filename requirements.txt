@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+python-dotenv
+opencv-python
+face_recognition
+git+https://github.com/ageitgey/face_recognition_models
