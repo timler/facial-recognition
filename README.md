@@ -38,6 +38,13 @@ This project uses several Python libraries:
 
 Follow these steps to install and set up the project:
 
+0. **Required**: Install these first:
+sudo apt-get update
+sudo apt-get install cmake
+sudo apt-get install build-essential
+sudo apt-get install python3-dev
+pip3 install wheel
+
 1. **Clone the Repository**: First, clone the repository to your local machine using git. Open your terminal and run the following command:
 
     ```bash
