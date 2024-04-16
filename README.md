@@ -69,6 +69,24 @@ Follow these steps to install and set up the project:
     pip3 install -e .
     ```
 
+    To install `face_recognition_models` you will need to have CMake installed, which is required to build the `dlib` package which is a dependency of `face_recognition_models`.
+
+    On Linux, run the following commands:
+    ```bash
+    sudo apt-get update
+    sudo apt-get install cmake
+    sudo apt-get install build-essential
+    sudo apt-get install python3-dev
+    pip3 install wheel
+    ```
+
+    On MacOs, run these commands:
+    ```bash
+    brew update
+    brew install cmake
+    pip install wheel
+    ```
+
 5. **Set Environment Variables**: Set the necessary environment variables for the facial recognition model, tolerance, and face database directory. You can do this in your terminal or by creating a `.env` file in the project directory. 
 
     To create the `.env` file, you can copy the `.env.example` file and rename it to `.env`. Then, update the values in the `.env` file with your desired configuration.
