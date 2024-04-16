@@ -12,7 +12,7 @@ from fastapi import UploadFile
 # Configuration
 model = os.getenv('MODEL', 'default')  # "default" or "cnn" (cnn requires more GPU)
 tolerance = float(os.getenv('TOLERANCE', '0.6'))  # Lower values make the recognition more strict, default is 0.6
-face_database_dir = os.getenv('FACE_DATABASE_DIR', 'face_database')  # Where to store the known faces
+face_database_dir = os.getenv('FACE_DATABASE_DIR', 'face_database')  # Where to store the known faces (auto created if it doesn't exist)
 
 # Create an instance of the FacialRecognition class
 fr = FacialRecognition(model, tolerance, face_database_dir)
