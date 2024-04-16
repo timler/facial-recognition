@@ -7,6 +7,7 @@ from pydantic import BaseModel
 import uvicorn
 
 from watch.facial_recognition import FacialRecognition
+from fastapi import UploadFile
 
 # Configuration
 model = os.getenv('MODEL', 'default')  # "default" or "cnn" (cnn requires more GPU)
@@ -54,7 +55,7 @@ class FaceDeleteResponse(BaseModel):
     name: str
     image_base64: str
 
-@app.post("/identify_faces")
+@app.post("/identify_faces", description="Locates and identifies the faces in an image")
 async def identify_faces(request: FaceIdentificationRequest):
     identified_faces = fr.recognize_faces_in_image(request.image_base64)
     response = []
@@ -67,7 +68,7 @@ async def identify_faces(request: FaceIdentificationRequest):
         ))
     return response
 
-@app.post("/save_face")
+@app.post("/save_face", description="Saves a face image for a person to the known faces database, or an unknown face if the name is not provided, or it is 'unknown'")
 async def save_face(request: FaceSaveRequest):
     file_url = fr.save_face_image(request.image_base64, request.name)
     response = FaceResponse(
@@ -76,7 +77,7 @@ async def save_face(request: FaceSaveRequest):
     )
     return response
 
-@app.get("/get_images")
+@app.get("/get_images", description="Retrieves all the face images for a specific person, or all the unknown faces if no name is provided.")
 async def get_images(name: Optional[str] = None):
     images = fr.get_all_images(name)
     response = []
@@ -88,7 +89,7 @@ async def get_images(name: Optional[str] = None):
         ))
     return response
 
-@app.post("/delete_face")
+@app.post("/delete_face", description="Deletes a face image from the known or unknown faces database")
 async def delete_face(request: FaceDeleteRequest):
     image = fr.delete_image(request.face_image_url)
     response = FaceDeleteResponse(
@@ -99,7 +100,7 @@ async def delete_face(request: FaceDeleteRequest):
     return response
 
 @app.post("/label_face")
-async def label_face(request: FaceLabelRequest):
+async def label_face(request: FaceLabelRequest, description="Labels an unknown face image with a name once they have been identified, or re-labels an existing person if they have been misidentified (as known or unknown if no name is provided)."):
     new_file_path = fr.label_image(request.face_image_url, request.name)
     response = FaceResponse(
         face_image_url=new_file_path,
