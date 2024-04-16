@@ -38,7 +38,7 @@ This project uses several Python libraries:
 
 Follow these steps to install and set up the project:
 
-0. **Required**: Install these first:
+0. **Required**: Install these packages first:
 sudo apt-get update
 sudo apt-get install cmake
 sudo apt-get install build-essential
@@ -75,7 +75,7 @@ pip3 install wheel
     ```bash
     pip3 install -e .
     ```
-
+    
     To install `face_recognition_models` you will need to have CMake installed, which is required to build the `dlib` package which is a dependency of `face_recognition_models`.
 
     On Linux, run the following commands:
