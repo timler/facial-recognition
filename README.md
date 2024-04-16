@@ -1,8 +1,8 @@
-# facial-recognition Watch
+# facial-recognition watch
 
 ## Description
 
-Facial Recognition REST API built with FastAPI
+Facial Recognition Watch REST API built with FastAPI
 
 It uses the face_recognition library for the core functionality of processing and recognizing faces in images. The API can accept images through HTTP requests, identify faces in the received images, and compare them to a database of known faces.
 
@@ -63,17 +63,16 @@ Follow these steps to install and set up the project:
     pip install -r requirements.txt
     ```
 
-5. Install the package:
+5. **Install the package**: Install the project package
     ```bash
     pip install .
     ```
-This will install the package and its dependencies.
 
-If you want to make changes to the project and test it locally, you can install it in editable mode:
+    If you want to make changes to the project and test it locally, you can install it in editable mode:
 
-```bash
-pip install -e .
-```
+    ```bash
+    pip install -e .
+    ```
 
 5. **Set Environment Variables**: Set the necessary environment variables for the facial recognition model, tolerance, and face database directory. You can do this in your terminal or add them to your `.env` file if you have one.
 
@@ -85,7 +84,7 @@ pip install -e .
 
     The `--reload` flag enables hot reloading, which means the server will automatically update whenever you make changes to the code.
 
-Now, the facial recognition API should be running at `http://localhost:8000`.
+Now, the facial recognition API should be running at [http://localhost:8000](http://localhost:8000).
 
 ## API Endpoints
 
