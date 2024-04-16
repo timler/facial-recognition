@@ -2,23 +2,33 @@ import os
 from typing import Optional
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import uvicorn
 
 from watch.facial_recognition import FacialRecognition
-from fastapi import UploadFile
+
+from dotenv import load_dotenv
+load_dotenv()
 
 # Configuration
 model = os.getenv('MODEL', 'default')  # "default" or "cnn" (cnn requires more GPU)
 tolerance = float(os.getenv('TOLERANCE', '0.6'))  # Lower values make the recognition more strict, default is 0.6
 face_database_dir = os.getenv('FACE_DATABASE_DIR', 'face_database')  # Where to store the known faces (auto created if it doesn't exist)
 
+# API configuration
+api_port = int(os.getenv('API_PORT', '8000'))
+api_host = os.getenv('API_HOST', 'localhost')
+api_protocol = os.getenv('API_PROTOCOL', 'http')
+api_root_path = os.getenv('API_ROOT_PATH', '/')
+
 # Create an instance of the FacialRecognition class
 fr = FacialRecognition(model, tolerance, face_database_dir)
 
 # Create the FastAPI app
-app = FastAPI()
+print(f"Starting API at {api_protocol}://{api_host}:{api_port}{api_root_path}")
+app = FastAPI(root_path=api_root_path)
 
 # Define the request/response body models
 class FaceIdentificationRequest(BaseModel):
@@ -110,4 +120,4 @@ async def label_face(request: FaceLabelRequest, description="Labels an unknown f
 
 if __name__ == "__main__":
     app.mount("/images", StaticFiles(directory=face_database_dir), name="images")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=api_host, port=api_port)
