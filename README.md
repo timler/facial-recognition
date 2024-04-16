@@ -53,20 +53,20 @@ Follow these steps to install and set up the project:
 3. **Create a Virtual Environment (Optional)**: It's recommended to create a virtual environment to keep the project's dependencies isolated from your system. You can do this with the following commands:
 
     ```bash
-    python3 -m venv env
-    source env/bin/activate
+    python3 -m venv venv
+    source venv/bin/activate
     ```
 
 4. **Install the package**: Install the project package. This will also install the dependencies specified in `setup.py`:
 
     ```bash
-    pip install .
+    pip3 install .
     ```
 
     If you want to make changes to the project and test it locally, you can install it in editable mode:
 
     ```bash
-    pip install -e .
+    pip3 install -e .
     ```
 
 5. **Set Environment Variables**: Set the necessary environment variables for the facial recognition model, tolerance, and face database directory. You can do this in your terminal or add them to your `.env` file if you have one.
