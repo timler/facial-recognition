@@ -85,11 +85,11 @@ Now, the facial recognition API should be running at [http://localhost:8000](htt
 
 This application has the following API endpoints:
 
-1. **`POST /identify_faces`**: This endpoint accepts a Base64 encoded image and identifies the faces in the image using known face encodings and names. It returns the identified faces with the name, image, matching image, and confidence percentage.
+1. **`POST /identify_faces`**: This endpoint accepts a Base64 encoded image and identifies the faces in the image using known face encodings and names. It returns the identified faces with the name, image, matching image, and confidence in the match expressed as a percentage.
 
 2. **`POST /save_face`**: This endpoint accepts a Base64 encoded image and a name, and saves the face from the image to the database with the given name.
 
-3. **`GET /get_images`**: This endpoint returns a list of all saved face images in the database. Optionally, you can provide a name to get images of a specific person.
+3. **`GET /get_images`**: This endpoint returns a list of all saved face images for a person given a name. If no name or name is "unknown", then it returns all the unknown face images.
 
 4. **`POST /delete_face`**: This endpoint accepts a face image URL and deletes the corresponding face image from the database.
 
