@@ -57,13 +57,8 @@ Follow these steps to install and set up the project:
     source env/bin/activate
     ```
 
-4. **Install Dependencies**: Install the project's dependencies using pip:
+4. **Install the package**: Install the project package. This will also install the dependencies specified in `setup.py`:
 
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-5. **Install the package**: Install the project package
     ```bash
     pip install .
     ```
