@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Optional
 
 from fastapi import FastAPI
@@ -23,11 +24,16 @@ api_host = os.getenv('API_HOST', 'localhost')
 api_protocol = os.getenv('API_PROTOCOL', 'http')
 api_root_path = os.getenv('API_ROOT_PATH', '/')
 
+# Initialize the logger
+log_config_file = os.getenv('LOG_CONFIG_FILE', 'logging.ini')
+logging.config.fileConfig(log_config_file)
+logger = logging.getLogger(__name__)
+
 # Create an instance of the FacialRecognition class
 fr = FacialRecognition(model, tolerance, face_database_dir)
 
 # Create the FastAPI app
-print(f"Starting API at {api_protocol}://{api_host}:{api_port}{api_root_path}")
+logger.info(f"Starting API at {api_protocol}://{api_host}:{api_port}{api_root_path}")
 app = FastAPI(root_path=api_root_path)
 
 # Add CORS middleware headers

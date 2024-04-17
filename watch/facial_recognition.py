@@ -6,6 +6,9 @@ from io import BytesIO
 import cv2
 import random
 
+# Initialize the logger
+logger = logging.getLogger(__name__)
+
 class FacialRecognition:
     def __init__(self, model='default', tolerance=0.6, face_database_dir='face_database'):
         """
@@ -23,10 +26,6 @@ class FacialRecognition:
         self.known_face_names = []
         self.known_face_filenames = []
 
-        # Initialize the logger
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-
         # Initialise the face database
         self._load_known_faces()
 
@@ -38,20 +37,20 @@ class FacialRecognition:
         self.known_face_names = []
         self.known_face_filenames = []
         known_faces_dir = os.path.join(self.face_database_dir, "known")
-        self.logger.info(f"Loading known faces in {known_faces_dir}...")
+        logger.info(f"Loading known faces in {known_faces_dir}...")
         os.makedirs(known_faces_dir, exist_ok=True)
         for person_dir in os.listdir(known_faces_dir):
             person_path = os.path.join(known_faces_dir, person_dir)
             if os.path.isdir(person_path):
-                self.logger.debug(f"Loading faces for {person_dir}")
+                logger.debug(f"Loading faces for {person_dir}")
                 for filename in os.listdir(person_path):
                     filename = filename.lower()
                     if filename.endswith(".jpg") or filename.endswith(".png") or filename.endswith(".jpeg") or filename.endswith(".webp"):
-                        self.logger.debug(f"Loading {filename}")
+                        logger.debug(f"Loading {filename}")
                         face_image = face_recognition.load_image_file(os.path.join(person_path, filename))
                         face_encodings = face_recognition.face_encodings(face_image, model=self.model)
                         if len(face_encodings) == 0:
-                            self.logger.info(f"No face found in {os.path.join(person_path, filename)}")
+                            logger.info(f"No face found in {os.path.join(person_path, filename)}")
                             continue
                         self.known_face_encodings.append(face_encodings[0])
                         self.known_face_names.append(person_dir)
@@ -108,7 +107,7 @@ class FacialRecognition:
             raise Exception("No face found in the image")
 
         for index, (face_encoding, face_location) in enumerate(zip(img_face_encodings, img_face_locations)):
-            self.logger.debug(f"Processing face {index + 1}/{len(img_face_encodings)} at location {face_location}")
+            logger.debug(f"Processing face {index + 1}/{len(img_face_encodings)} at location {face_location}")
 
             # Compare the face encoding with the known face encodings
             matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding, tolerance=self.tolerance)
@@ -128,7 +127,7 @@ class FacialRecognition:
                 best_match_index = face_distances.argmin()
             else:
                 best_match_index = -1
-                self.logger.info("No known faces to compare with")
+                logger.info("No known faces to compare with")
 
             # If a match is found, set the identified face details
             if best_match_index >= 0 and matches[best_match_index]:
@@ -138,9 +137,9 @@ class FacialRecognition:
                 identified_face["name"] = identified_name
                 identified_face["matching_image"] = base64.b64encode(open(matched_face_filename, "rb").read()).decode()
                 identified_face["confidence"] = confidence
-                self.logger.info(f"Identified as {identified_name} with confidence {confidence}%")
+                logger.info(f"Identified as {identified_name} with confidence {confidence}%")
             else:
-                self.logger.info("No known match found")
+                logger.info("No known match found")
             
             identified_faces.append(identified_face)
 
@@ -184,7 +183,7 @@ class FacialRecognition:
         file_path = os.path.join(full_path, filename)
         face_image_bgr = cv2.cvtColor(face_image, cv2.COLOR_RGB2BGR)
         cv2.imwrite(file_path, face_image_bgr)
-        self.logger.info(f"Saved new face to {file_path}")
+        logger.info(f"Saved new face to {file_path}")
 
         # Add the new face to the known faces
         self.known_face_encodings.append(face_encodings[0])
@@ -221,7 +220,7 @@ class FacialRecognition:
             new_filename = f"{name}_{random.randint(0, 1000000)}.jpg"
             new_file_path = os.path.join(path, new_filename)
             os.rename(old_file_path, new_file_path)
-            self.logger.info(f"Labeled image {old_file_path} as {new_file_path}")
+            logger.info(f"Labeled image {old_file_path} as {new_file_path}")
 
             # Reload the known faces
             self._load_known_faces()
@@ -262,7 +261,7 @@ class FacialRecognition:
                             "name": filename.split(".")[0].split("_")[0],
                             "image_base64": base64.b64encode(f.read()).decode()
                         })
-        self.logger.info(f"Retrieved {len(images)} images for name: {name}")
+        logger.info(f"Retrieved {len(images)} images for name: {name}")
 
         return images
 
@@ -287,7 +286,7 @@ class FacialRecognition:
             name = os.path.basename(file_path).split(".")[0].split("_")[0]
             image_base64 = base64.b64encode(open(file_path, "rb").read()).decode()
             os.remove(file_path)
-            self.logger.info(f"Deleted image {file_path}")
+            logger.info(f"Deleted image {file_path}")
             # Reload the known faces
             self._load_known_faces()
             return {
