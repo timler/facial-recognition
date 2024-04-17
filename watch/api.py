@@ -30,6 +30,17 @@ fr = FacialRecognition(model, tolerance, face_database_dir)
 print(f"Starting API at {api_protocol}://{api_host}:{api_port}{api_root_path}")
 app = FastAPI(root_path=api_root_path)
 
+# Add CORS middleware headers
+allowed_origins = os.getenv('ALLOWED_ORIGINS', '*')
+origins = [origin.strip() for origin in allowed_origins.split(',')]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Define the request/response body models
 class FaceIdentificationRequest(BaseModel):
     image_base64: str
