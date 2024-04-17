@@ -1,22 +1,29 @@
-import os
-import logging
-from typing import Optional
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-import uvicorn
-
-from watch.facial_recognition import FacialRecognition
-
+# load the environment variables
 from dotenv import load_dotenv
 load_dotenv()
 
-# Configuration
+# Initialize the logger (first things first)
+import logging
+import os
+log_config_file = os.getenv('LOG_CONFIG_FILE', 'logging.ini')
+logging.config.fileConfig(log_config_file)
+logger = logging.getLogger(__name__)
+
+from pydantic import BaseModel
+from typing import Optional
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from watch.facial_recognition import FacialRecognition
+import uvicorn
+
+# Facial Recognition Configuration
 model = os.getenv('MODEL', 'default')  # "default" or "cnn" (cnn requires more GPU)
 tolerance = float(os.getenv('TOLERANCE', '0.6'))  # Lower values make the recognition more strict, default is 0.6
 face_database_dir = os.getenv('FACE_DATABASE_DIR', 'face_database')  # Where to store the known faces (auto created if it doesn't exist)
+
+# Create an instance of the FacialRecognition class
+fr = FacialRecognition(model, tolerance, face_database_dir)
 
 # API configuration
 api_port = int(os.getenv('API_PORT', '8000'))
@@ -24,24 +31,15 @@ api_host = os.getenv('API_HOST', 'localhost')
 api_protocol = os.getenv('API_PROTOCOL', 'http')
 api_root_path = os.getenv('API_ROOT_PATH', '')
 
-# Initialize the logger
-log_config_file = os.getenv('LOG_CONFIG_FILE', 'logging.ini')
-logging.config.fileConfig(log_config_file)
-logger = logging.getLogger(__name__)
-
-# Create an instance of the FacialRecognition class
-fr = FacialRecognition(model, tolerance, face_database_dir)
-
 # Set up the API documentation URLs
 docs_swagger_url = os.getenv('DOCS_SWAGGER_URL')
+docs_redoc_url = os.getenv('DOCS_REDOC_URL')
 if docs_swagger_url is not None:
     logger.info(f"Swagger UI URL: {api_protocol}://{api_host}:{api_port}{api_root_path}{docs_swagger_url}")
-docs_redoc_url = os.getenv('DOCS_REDOC_URL')
 if docs_redoc_url is not None:
     logger.info(f"ReDoc URL: {api_protocol}://{api_host}:{api_port}{api_root_path}{docs_redoc_url}")
 
 # Create the FastAPI app
-logger.info(f"Starting API at {api_protocol}://{api_host}:{api_port}{api_root_path}")
 app = FastAPI(root_path=api_root_path, docs_url=docs_swagger_url, redoc_url=docs_redoc_url)
 
 # Add CORS middleware headers
