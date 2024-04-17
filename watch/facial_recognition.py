@@ -93,60 +93,55 @@ class FacialRecognition:
         Raises:
             Exception: If no face is found in the image.
         """
-        try:
-            identified_faces = []
+        identified_faces = []
 
-            # Convert the Base64 encoded image to an image
-            image_bytes = base64.b64decode(image_base64)
-            image_file = BytesIO(image_bytes)
-            img = face_recognition.load_image_file(image_file)
+        # Convert the Base64 encoded image to an image
+        image_bytes = base64.b64decode(image_base64)
+        image_file = BytesIO(image_bytes)
+        img = face_recognition.load_image_file(image_file)
 
-            # Find all the faces in the image and compute their encodings
-            img_face_locations = face_recognition.face_locations(img, model=self.model)
-            img_face_encodings = face_recognition.face_encodings(img, known_face_locations=img_face_locations, model=self.model)
-            if len(img_face_locations) == 0:
-                raise Exception("No face found in the image")
+        # Find all the faces in the image and compute their encodings
+        img_face_locations = face_recognition.face_locations(img, model=self.model)
+        img_face_encodings = face_recognition.face_encodings(img, known_face_locations=img_face_locations, model=self.model)
+        if len(img_face_locations) == 0:
+            raise Exception("No face found in the image")
 
-            for index, (face_encoding, face_location) in enumerate(zip(img_face_encodings, img_face_locations)):
-                logger.debug(f"Processing face {index + 1}/{len(img_face_encodings)} at location {face_location}")
+        for index, (face_encoding, face_location) in enumerate(zip(img_face_encodings, img_face_locations)):
+            logger.debug(f"Processing face {index + 1}/{len(img_face_encodings)} at location {face_location}")
 
-                # Compare the face encoding with the known face encodings
-                matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding, tolerance=self.tolerance)
-                face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
+            # Compare the face encoding with the known face encodings
+            matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding, tolerance=self.tolerance)
+            face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
 
-                # Crop the image to the face location and define the result
-                face_image = self._crop_image_to_face(img, face_location)
-                identified_face = {
-                    "name": "unknown",
-                    "image": base64.b64encode(cv2.imencode('.jpg', face_image)[1]).decode(),
-                    "matching_image": "",
-                    "confidence": 0
-                }
+            # Crop the image to the face location and define the result
+            face_image = self._crop_image_to_face(img, face_location)
+            identified_face = {
+                "name": "unknown",
+                "image": base64.b64encode(cv2.imencode('.jpg', face_image)[1]).decode(),
+                "matching_image": "",
+                "confidence": 0
+            }
 
-                # Determine the best match and confidence
-                if len(face_distances) > 0:
-                    best_match_index = face_distances.argmin()
-                else:
-                    best_match_index = -1
-                    logger.info("No known faces to compare with")
+            # Determine the best match and confidence
+            if len(face_distances) > 0:
+                best_match_index = face_distances.argmin()
+            else:
+                best_match_index = -1
+                logger.info("No known faces to compare with")
 
-                # If a match is found, set the identified face details
-                if best_match_index >= 0 and matches[best_match_index]:
-                    identified_name = self.known_face_names[best_match_index]
-                    matched_face_filename = os.path.join(self.face_database_dir, "known", identified_name, self.known_face_filenames[best_match_index])
-                    confidence = self._distance_to_confidence(face_distances[best_match_index])
-                    identified_face["name"] = identified_name
-                    identified_face["matching_image"] = base64.b64encode(open(matched_face_filename, "rb").read()).decode()
-                    identified_face["confidence"] = confidence
-                    logger.info(f"Identified as {identified_name} with confidence {confidence}%")
-                else:
-                    logger.info("No known match found")
-                
-                identified_faces.append(identified_face)
-
-        except Exception as error:
-            # handle the exception
-            print("match image exception occurred:", error) 
+            # If a match is found, set the identified face details
+            if best_match_index >= 0 and matches[best_match_index]:
+                identified_name = self.known_face_names[best_match_index]
+                matched_face_filename = os.path.join(self.face_database_dir, "known", identified_name, self.known_face_filenames[best_match_index])
+                confidence = self._distance_to_confidence(face_distances[best_match_index])
+                identified_face["name"] = identified_name
+                identified_face["matching_image"] = base64.b64encode(open(matched_face_filename, "rb").read()).decode()
+                identified_face["confidence"] = confidence
+                logger.info(f"Identified as {identified_name} with confidence {confidence}%")
+            else:
+                logger.info("No known match found")
+            
+            identified_faces.append(identified_face)
 
         return identified_faces
 

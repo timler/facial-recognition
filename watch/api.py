@@ -11,11 +11,14 @@ logger = logging.getLogger(__name__)
 
 from pydantic import BaseModel
 from typing import Optional
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from watch.facial_recognition import FacialRecognition
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.responses import JSONResponse
 import uvicorn
+
+from watch.facial_recognition import FacialRecognition
 
 # Facial Recognition Configuration
 model = os.getenv('MODEL', 'default')  # "default" or "cnn" (cnn requires more GPU)
@@ -53,6 +56,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 logger.info(f"Allowed origins: {origins}")
+
+# Adding exception handling middleware
+@app.exception_handler(Exception)
+async def custom_exception_handler(request: Request, exc: Exception):
+    endpoint = request.url.path
+    logger.error(f"An error occurred at endpoint {endpoint}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": f"An error occurred: {str(exc)}"},
+    )
 
 # Define the request/response body models
 class FaceIdentificationRequest(BaseModel):
