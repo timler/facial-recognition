@@ -22,7 +22,7 @@ face_database_dir = os.getenv('FACE_DATABASE_DIR', 'face_database')  # Where to 
 api_port = int(os.getenv('API_PORT', '8000'))
 api_host = os.getenv('API_HOST', 'localhost')
 api_protocol = os.getenv('API_PROTOCOL', 'http')
-api_root_path = os.getenv('API_ROOT_PATH', '/')
+api_root_path = os.getenv('API_ROOT_PATH', '')
 
 # Initialize the logger
 log_config_file = os.getenv('LOG_CONFIG_FILE', 'logging.ini')
@@ -46,6 +46,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+logger.info(f"Allowed origins: {origins}")
 
 # Define the request/response body models
 class FaceIdentificationRequest(BaseModel):
