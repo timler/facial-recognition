@@ -50,6 +50,7 @@ allowed_origins = os.getenv('ALLOWED_ORIGINS', '*')
 origins = [origin.strip() for origin in allowed_origins.split(',')]
 app.add_middleware(
     CORSMiddleware,
+    # allow_origins=['*'], 
     allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
@@ -73,7 +74,7 @@ class FaceIdentificationRequest(BaseModel):
 
 class FaceIdentificationResponse(BaseModel):
     name: str
-    image_base64: str
+    # image_base64: str
     matching_image_base64: str
     confidence: int
 
@@ -109,7 +110,7 @@ async def identify_faces(request: FaceIdentificationRequest):
     for face in identified_faces:
         response.append(FaceIdentificationResponse(
             name=face['name'],
-            image_base64=face['image'],
+            # image_base64=face['image'],
             matching_image_base64=face['matching_image'],
             confidence=face['confidence']
         ))
