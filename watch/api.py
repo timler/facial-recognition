@@ -135,8 +135,8 @@ async def delete_face(request: FaceDeleteRequest):
     )
     return response
 
-@app.post("/label_face")
-async def label_face(request: FaceLabelRequest, description="Labels an unknown face image with a name once they have been identified, or re-labels an existing person if they have been misidentified (as known or unknown if no name is provided)."):
+@app.post("/label_face", description="Labels an unknown face image with a name once they have been identified, or re-labels an existing person if they have been misidentified (as known or unknown if no name is provided).")
+async def label_face(request: FaceLabelRequest):
     new_file_path = fr.label_image(request.face_image_url, request.name)
     response = FaceResponse(
         face_image_url=new_file_path,
