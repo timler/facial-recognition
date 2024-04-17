@@ -32,9 +32,17 @@ logger = logging.getLogger(__name__)
 # Create an instance of the FacialRecognition class
 fr = FacialRecognition(model, tolerance, face_database_dir)
 
+# Set up the API documentation URLs
+docs_swagger_url = os.getenv('DOCS_SWAGGER_URL')
+if docs_swagger_url is not None:
+    logger.info(f"Swagger UI URL: {api_protocol}://{api_host}:{api_port}{api_root_path}{docs_swagger_url}")
+docs_redoc_url = os.getenv('DOCS_REDOC_URL')
+if docs_redoc_url is not None:
+    logger.info(f"ReDoc URL: {api_protocol}://{api_host}:{api_port}{api_root_path}{docs_redoc_url}")
+
 # Create the FastAPI app
 logger.info(f"Starting API at {api_protocol}://{api_host}:{api_port}{api_root_path}")
-app = FastAPI(root_path=api_root_path)
+app = FastAPI(root_path=api_root_path, docs_url=docs_swagger_url, redoc_url=docs_redoc_url)
 
 # Add CORS middleware headers
 allowed_origins = os.getenv('ALLOWED_ORIGINS', '*')
