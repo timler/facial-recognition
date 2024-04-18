@@ -128,6 +128,28 @@ This application has the following API endpoints:
 
 For more details about the API endpoints and to test them, please run the application and visit [http://localhost:8000/docs](http://localhost:8000/docs) in your web browser. This will open the automatically generated interactive API documentation (Swagger UI) where you can try out the endpoints directly.
 
+## Development
+
+### Testing
+
+To run the tests install the dependencies:
+
+```bash
+pip3 install pytest requests httpx
+```
+
+Create an .env file from .env.example
+
+```bash
+cp .env.example tests/.env
+```
+
+Then run pytest:
+
+```bash
+pytest tests/test_api.py -s
+```
+
 ## Known Issues
 
 n/a

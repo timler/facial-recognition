@@ -90,7 +90,7 @@ class FaceIdentificationRequest(BaseModel):
 
 class FaceIdentificationResponse(BaseModel):
     name: str
-    # image_base64: str
+    image_base64: str
     matching_image_base64: str
     confidence: int
 
@@ -126,7 +126,7 @@ async def identify_faces(request: FaceIdentificationRequest):
     for face in identified_faces:
         response.append(FaceIdentificationResponse(
             name=face['name'],
-            # image_base64=face['image'],
+            image_base64=face['image'],
             matching_image_base64=face['matching_image'],
             confidence=face['confidence']
         ))
