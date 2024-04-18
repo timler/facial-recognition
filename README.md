@@ -38,13 +38,6 @@ This project uses several Python libraries:
 
 Follow these steps to install and set up the project:
 
-0. **Required**: Install these packages first:
-sudo apt-get update
-sudo apt-get install cmake
-sudo apt-get install build-essential
-sudo apt-get install python3-dev
-pip3 install wheel
-
 1. **Clone the Repository**: First, clone the repository to your local machine using git. Open your terminal and run the following command:
 
     ```bash
@@ -91,7 +84,7 @@ pip3 install wheel
     ```bash
     brew update
     brew install cmake
-    pip install wheel
+    pip3 install wheel
     ```
 
 5. **Set Environment Variables**: Set the necessary environment variables for the facial recognition model, tolerance, and face database directory. You can do this in your terminal or by creating a `.env` file in the project directory. 
