@@ -1,10 +1,11 @@
 import os
-import face_recognition
-import base64
-import logging
 from io import BytesIO
+import face_recognition
+import logging
 import cv2
 import random
+
+import watch.image_converter as image_converter
 
 # Initialize the logger
 logger = logging.getLogger(__name__)
@@ -96,13 +97,13 @@ class FacialRecognition:
         identified_faces = []
 
         # Convert the Base64 encoded image to an image
-        image_bytes = base64.b64decode(image_base64)
-        image_file = BytesIO(image_bytes)
-        img = face_recognition.load_image_file(image_file)
+        image_format = image_converter.base64_image_format(image_base64)
+        image_bytes = image_converter.base64_to_image_buffer(image_base64)
+        image_array = face_recognition.load_image_file(image_bytes)
 
         # Find all the faces in the image and compute their encodings
-        img_face_locations = face_recognition.face_locations(img, model=self.model)
-        img_face_encodings = face_recognition.face_encodings(img, known_face_locations=img_face_locations, model=self.model)
+        img_face_locations = face_recognition.face_locations(image_array, model=self.model)
+        img_face_encodings = face_recognition.face_encodings(image_array, known_face_locations=img_face_locations, model=self.model)
         if len(img_face_locations) == 0:
             raise Exception("No face found in the image")
 
@@ -114,10 +115,10 @@ class FacialRecognition:
             face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
 
             # Crop the image to the face location and define the result
-            face_image = self._crop_image_to_face(img, face_location)
+            face_image_array = self._crop_image_to_face(image_array, face_location)
             identified_face = {
                 "name": "unknown",
-                "image": base64.b64encode(cv2.imencode('.jpg', face_image)[1]).decode(),
+                "image": image_converter.image_array_to_base64(face_image_array, image_format),
                 "matching_image": "",
                 "confidence": 0
             }
@@ -135,7 +136,7 @@ class FacialRecognition:
                 matched_face_filename = os.path.join(self.face_database_dir, "known", identified_name, self.known_face_filenames[best_match_index])
                 confidence = self._distance_to_confidence(face_distances[best_match_index])
                 identified_face["name"] = identified_name
-                identified_face["matching_image"] = base64.b64encode(open(matched_face_filename, "rb").read()).decode()
+                identified_face["matching_image"] = image_converter.image_file_to_base64(matched_face_filename)
                 identified_face["confidence"] = confidence
                 logger.info(f"Identified as {identified_name} with confidence {confidence}%")
             else:
@@ -160,20 +161,19 @@ class FacialRecognition:
         - Exception: If no face is found in the image.
         """
         # Convert the Base64 encoded image to an image
-        image_bytes = base64.b64decode(image_base64)
-        image_file = BytesIO(image_bytes)
-        img = face_recognition.load_image_file(image_file)
+        image_bytes = image_converter.base64_to_image_buffer(image_base64)
+        image_array = face_recognition.load_image_file(image_bytes)
         
         # Identify the face in the image
-        face_encodings = face_recognition.face_encodings(img, model=self.model)
+        face_encodings = face_recognition.face_encodings(image_array, model=self.model)
         if len(face_encodings) == 0:
             raise Exception("No face found in the image")
         
         # Crop the image to the face location
-        img_face_locations = face_recognition.face_locations(img, model=self.model)
+        img_face_locations = face_recognition.face_locations(image_array, model=self.model)
         if len(img_face_locations) == 0:
             raise Exception("No face found in the image")
-        face_image = self._crop_image_to_face(img, img_face_locations[0])
+        face_image_array = self._crop_image_to_face(image_array, img_face_locations[0])
         
         # Save the image to the specified directory
         filename = f"{name}_{random.randint(0, 1000000)}.jpg"
@@ -181,7 +181,7 @@ class FacialRecognition:
         full_path = os.path.join(self.face_database_dir, sub_folder)
         os.makedirs(full_path, exist_ok=True)
         file_path = os.path.join(full_path, filename)
-        face_image_bgr = cv2.cvtColor(face_image, cv2.COLOR_RGB2BGR)
+        face_image_bgr = cv2.cvtColor(face_image_array, cv2.COLOR_RGB2BGR)
         cv2.imwrite(file_path, face_image_bgr)
         logger.info(f"Saved new face to {file_path}")
 
@@ -259,7 +259,7 @@ class FacialRecognition:
                         images.append({
                             "face_image_url": os.path.join(sub_folder, filename),
                             "name": filename.split(".")[0].split("_")[0],
-                            "image_base64": base64.b64encode(f.read()).decode()
+                            "image_base64": image_converter.image_file_to_base64(f)
                         })
         logger.info(f"Retrieved {len(images)} images for name: {name}")
 
@@ -284,7 +284,7 @@ class FacialRecognition:
         file_path = os.path.join(self.face_database_dir, filename)
         if os.path.exists(file_path):
             name = os.path.basename(file_path).split(".")[0].split("_")[0]
-            image_base64 = base64.b64encode(open(file_path, "rb").read()).decode()
+            image_base64 = image_converter.image_file_to_base64(file_path)
             os.remove(file_path)
             logger.info(f"Deleted image {file_path}")
             # Reload the known faces

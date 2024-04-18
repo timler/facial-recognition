@@ -10,6 +10,8 @@ import pytest
 from fastapi.testclient import TestClient
 from fastapi import HTTPException
 
+import watch.image_converter as image_converter
+
 # Create a test client
 from watch.api import app
 client = TestClient(app)
@@ -22,10 +24,8 @@ def setup_app():
 
 def test_identify_faces_unknown_invalid_apikey():
     # Prepare test data
-    with open(os.path.join("tests","test_image.jpg"), "rb") as image_file:
-        image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
     request_data = {
-        "image_base64": image_base64
+        "image_base64": 'xxxxx'
     }
 
     # Send a POST request to the endpoint (without the API keys)
@@ -36,8 +36,7 @@ def test_identify_faces_unknown_invalid_apikey():
 
 def test_identify_faces_unknown():
     # Prepare test data
-    with open(os.path.join("tests","test_image.jpg"), "rb") as image_file:
-        image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
+    image_base64 = image_converter.image_file_to_base64(os.path.join("tests","test_image.jpg"))
     request_data = {
         "image_base64": image_base64
     }
@@ -59,6 +58,7 @@ def test_identify_faces_unknown():
         assert "name" in face
         assert face["name"] == "unknown"
         assert "image_base64" in face
+        assert face["image_base64"].startswith("data:image/jpeg;base64,")
         assert "matching_image_base64" in face
         assert face["matching_image_base64"] == ""
         assert "confidence" in face
@@ -66,8 +66,7 @@ def test_identify_faces_unknown():
 
 def test_identify_faces_known():
     # Prepare test data
-    with open(os.path.join("tests","me.png"), "rb") as image_file:
-        image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
+    image_base64 = image_converter.image_file_to_base64(os.path.join("tests","me.png"))
     request_data = {
         "image_base64": image_base64
     }
@@ -89,7 +88,9 @@ def test_identify_faces_known():
         assert "name" in face
         assert face["name"] == "Dagmar Timler"
         assert "image_base64" in face
+        assert face["image_base64"].startswith("data:image/png;base64,")
         assert "matching_image_base64" in face
+        assert face["matching_image_base64"].startswith("data:image/jpeg;base64,")
         assert "confidence" in face
         assert face["confidence"] == 50
 
@@ -98,7 +99,7 @@ def test_save_face():
     with open(os.path.join("tests","test_image.jpg"), "rb") as image_file:
         image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
     request_data = {
-        "image_base64": image_base64,
+        "image_base64": f"data:image/jpg;base64,{image_base64}",
         "name": "John Doe"
     }
 
@@ -175,6 +176,7 @@ def test_delete_face():
     assert face_url == "unknown/unknown_1.jpg"
     assert response_data["name"] == "unknown"
     assert response_data["image_base64"] is not None
+    assert response_data["image_base64"].startswith("data:image/jpeg;base64,")
 
 def test_get_images_without_name():
     # Send a GET request to the endpoint
@@ -191,6 +193,7 @@ def test_get_images_without_name():
     assert response_data[0]["name"] == "unknown"
     assert response_data[0]["face_image_url"] == "unknown/unknown_2.jpg"
     assert response_data[0]["image_base64"] is not None
+    assert response_data[0]["image_base64"].startswith("data:image/jpeg;base64,")
 
 def test_get_images_with_name_no_photos():
     # Prepare test data
@@ -226,9 +229,11 @@ def test_get_images_with_name_known():
     assert response_data[0]["name"] == "Dagmar Timler"
     assert response_data[0]["face_image_url"] == "known/Dagmar Timler/Dagmar Timler_152848.jpg"
     assert response_data[0]["image_base64"] is not None
+    assert response_data[0]["image_base64"].startswith("data:image/jpeg;base64,")
     assert response_data[1]["name"] == "Dagmar Timler"
     assert response_data[1]["face_image_url"] == "known/Dagmar Timler/Dagmar Timler_221849.jpg"
     assert response_data[1]["image_base64"] is not None
+    assert response_data[1]["image_base64"].startswith("data:image/jpeg;base64,")
 
 # Run the tests
 if __name__ == "__main__":
