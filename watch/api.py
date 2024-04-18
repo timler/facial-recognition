@@ -10,7 +10,8 @@ log_config_file = os.getenv('LOG_CONFIG_FILE', 'logging.ini')
 logging.config.fileConfig(log_config_file)
 logger = logging.getLogger(__name__)
 
-from pydantic import BaseModel
+from typing import List
+from pydantic import BaseModel, Field
 from typing import Optional
 from fastapi import FastAPI, Request, Depends, HTTPException, Security
 from fastapi.security.api_key import APIKeyHeader
@@ -21,6 +22,7 @@ from starlette.responses import JSONResponse
 import uvicorn
 
 from watch.facial_recognition import FacialRecognition
+
 
 # Facial Recognition Configuration
 model = os.getenv('MODEL', 'default')  # "default" or "cnn" (cnn requires more GPU)
@@ -86,40 +88,43 @@ async def custom_exception_handler(request: Request, exc: Exception):
 
 # Define the request/response body models
 class FaceIdentificationRequest(BaseModel):
-    image_base64: str
+    image_base64: str = Field(..., description="Base64 encoded image of the face to be identified")
 
 class FaceIdentificationResponse(BaseModel):
-    name: str
-    image_base64: str
-    matching_image_base64: str
-    confidence: int
+    name: str = Field(..., description="Name of the identified person, or 'unknown' if the person is not recognized")
+    image_base64: str = Field(..., description="Base64 encoded image of the identified face (cropped)")
+    matching_image_base64: str = Field(..., description="Base64 encoded image of the matching face in the database")
+    confidence: int = Field(..., description="Confidence level of the match expressed as a percentage (0-100)")
 
 class FaceSaveRequest(BaseModel):
-    name: str
-    image_base64: str
+    name: str = Field(None, description="Name of the person in the image, or 'unknown' if the person is not known")
+    image_base64: str = Field(..., description="Base64 encoded image of the face to be saved")
 
 class FaceLabelRequest(BaseModel):
-    face_image_url: str
-    name: str
+    face_image_url: str = Field(..., description="URL of the face image to be labeled (relative to the face database)")
+    name: str = Field(None, description="Name of the person in the image, or 'unknown' if the person is not known")
 
 class FaceResponse(BaseModel):
-    face_image_url: str
-    name: str
+    face_image_url: str = Field(..., description="URL of the saved face image (relative to the face database)")
+    name: str = Field(None, description="Name of the person in the image, or 'unknown' if the person is not known")
 
 class FaceImageResponse(BaseModel):
-    face_image_url: str
-    name: str
-    image_base64: str
+    face_image_url: str = Field(..., description="URL of the face image (relative to the face database)")
+    name: str = Field(None, description="Name of the person in the image, or 'unknown' if the person is not known")
+    image_base64: str = Field(..., description="Base64 encoded image of the face")
 
 class FaceDeleteRequest(BaseModel):
-    face_image_url: str
+    face_image_url: str = Field(..., description="URL of the face image to be deleted (relative to the face database)")
 
 class FaceDeleteResponse(BaseModel):
-    face_image_url: str
-    name: str
-    image_base64: str
+    face_image_url: str = Field(..., description="URL of the deleted face image (relative to the face database)")
+    name: str = Field(None, description="Name of the person in the image, or 'unknown' if the person is not known")
+    image_base64: str = Field(..., description="Base64 encoded image of the face")
 
-@app.post("/identify_faces", dependencies=[Depends(check_api_key)], description="Locates and identifies the faces in an image")
+@app.post("/identify_faces", 
+          dependencies=[Depends(check_api_key)], 
+          response_model=List[FaceIdentificationResponse], 
+          description="Locates and identifies the faces in an image")
 async def identify_faces(request: FaceIdentificationRequest):
     identified_faces = fr.recognize_faces_in_image(request.image_base64)
     response = []
@@ -132,7 +137,10 @@ async def identify_faces(request: FaceIdentificationRequest):
         ))
     return response
 
-@app.post("/save_face", dependencies=[Depends(check_api_key)], description="Saves a face image for a person to the known faces database, or an unknown face if the name is not provided, or it is 'unknown'")
+@app.post("/save_face", 
+          dependencies=[Depends(check_api_key)], 
+          response_model=FaceResponse,
+          description="Saves a face image for a person to the known faces database, or an unknown face if the name is not provided, or it is 'unknown'")
 async def save_face(request: FaceSaveRequest):
     file_url = fr.save_face_image(request.image_base64, request.name)
     response = FaceResponse(
@@ -141,7 +149,10 @@ async def save_face(request: FaceSaveRequest):
     )
     return response
 
-@app.get("/get_images", dependencies=[Depends(check_api_key)], description="Retrieves all the face images for a specific person, or all the unknown faces if no name is provided.")
+@app.get("/get_images", 
+         dependencies=[Depends(check_api_key)], 
+         response_model=List[FaceImageResponse],
+         description="Retrieves all the face images for a specific person, or all the unknown faces if no name is provided.")
 async def get_images(name: Optional[str] = None):
     images = fr.get_all_images(name)
     response = []
@@ -153,7 +164,10 @@ async def get_images(name: Optional[str] = None):
         ))
     return response
 
-@app.post("/delete_face", dependencies=[Depends(check_api_key)], description="Deletes a face image from the known or unknown faces database")
+@app.post("/delete_face", 
+          dependencies=[Depends(check_api_key)], 
+          response_model=FaceDeleteResponse,
+          description="Deletes a face image from the known or unknown faces database")
 async def delete_face(request: FaceDeleteRequest):
     image = fr.delete_image(request.face_image_url)
     response = FaceDeleteResponse(
@@ -163,7 +177,10 @@ async def delete_face(request: FaceDeleteRequest):
     )
     return response
 
-@app.post("/label_face", dependencies=[Depends(check_api_key)], description="Labels an unknown face image with a name once they have been identified, or re-labels an existing person if they have been misidentified (as known or unknown if no name is provided).")
+@app.post("/label_face", 
+          dependencies=[Depends(check_api_key)], 
+          response_model=FaceResponse,
+          description="Labels an unknown face image with a name once they have been identified, or re-labels an existing person if they have been misidentified (as known or unknown if no name is provided).")
 async def label_face(request: FaceLabelRequest):
     new_file_path = fr.label_image(request.face_image_url, request.name)
     response = FaceResponse(
