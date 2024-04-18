@@ -1,17 +1,17 @@
-import base64
-import re
 import os
-import shutil
-import pytest
-
 from dotenv import load_dotenv
 load_dotenv("tests/.env")
 face_database_dir = os.getenv('FACE_DATABASE_DIR', 'face_database')
 
+import base64
+import re
+import shutil
+import pytest
 from fastapi.testclient import TestClient
-from watch.api import app
+from fastapi import HTTPException
 
 # Create a test client
+from watch.api import app
 client = TestClient(app)
 
 @pytest.fixture(autouse=True)
@@ -19,6 +19,20 @@ def setup_app():
     # set up test data
     # run the test
     yield client
+
+def test_identify_faces_unknown_invalid_apikey():
+    # Prepare test data
+    with open(os.path.join("tests","test_image.jpg"), "rb") as image_file:
+        image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
+    request_data = {
+        "image_base64": image_base64
+    }
+
+    # Send a POST request to the endpoint (without the API keys)
+    response = client.post("/identify_faces", json=request_data)
+
+    # Check the status code
+    assert response.status_code == 403
 
 def test_identify_faces_unknown():
     # Prepare test data
@@ -29,7 +43,8 @@ def test_identify_faces_unknown():
     }
 
     # Send a POST request to the endpoint
-    response = client.post("/identify_faces", json=request_data)
+    headers = {"X-API-Key": "12345678910"}
+    response = client.post("/identify_faces", json=request_data, headers=headers)
 
     # Check the response status code
     assert response.status_code == 200
@@ -58,7 +73,8 @@ def test_identify_faces_known():
     }
 
     # Send a POST request to the endpoint
-    response = client.post("/identify_faces", json=request_data)
+    headers = {"X-API-Key": "12345678910"}
+    response = client.post("/identify_faces", json=request_data, headers=headers)
 
     # Check the response status code
     assert response.status_code == 200
@@ -87,7 +103,8 @@ def test_save_face():
     }
 
     # Send a POST request to the endpoint
-    response = client.post("/save_face", json=request_data)
+    headers = {"X-API-Key": "12345678910"}
+    response = client.post("/save_face", json=request_data, headers=headers)
 
     # Check the response status code
     assert response.status_code == 200
@@ -115,7 +132,8 @@ def test_label_face():
     }
 
     # Send a POST request to the endpoint
-    response = client.post("/label_face", json=request_data)
+    headers = {"X-API-Key": "12345678910"}
+    response = client.post("/label_face", json=request_data, headers=headers)
 
     # Check the response status code
     assert response.status_code == 200
@@ -144,7 +162,8 @@ def test_delete_face():
     }
 
     # Send a POST request to the endpoint
-    response = client.post("/delete_face", json=request_data)
+    headers = {"X-API-Key": "12345678910"}
+    response = client.post("/delete_face", json=request_data, headers=headers)
 
     # Check the response status code
     assert response.status_code == 200
@@ -159,7 +178,8 @@ def test_delete_face():
 
 def test_get_images_without_name():
     # Send a GET request to the endpoint
-    response = client.get("/get_images")
+    headers = {"X-API-Key": "12345678910"}
+    response = client.get("/get_images", headers=headers)
 
     # Check the response status code
     assert response.status_code == 200
@@ -177,7 +197,8 @@ def test_get_images_with_name_no_photos():
     name = "Joe Soap"
 
     # Send a GET request to the endpoint
-    response = client.get(f"/get_images?name={name}")
+    headers = {"X-API-Key": "12345678910"}
+    response = client.get(f"/get_images?name={name}", headers=headers)
 
     # Check the response status code
     assert response.status_code == 200
@@ -192,7 +213,8 @@ def test_get_images_with_name_known():
     name = "Dagmar Timler"
 
     # Send a GET request to the endpoint
-    response = client.get(f"/get_images?name={name}")
+    headers = {"X-API-Key": "12345678910"}
+    response = client.get(f"/get_images?name={name}", headers=headers)
 
     # Check the response status code
     assert response.status_code == 200

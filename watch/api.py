@@ -1,9 +1,10 @@
-# load the environment variables
+# Load the environment variables
 from dotenv import load_dotenv
 load_dotenv()
 
 # Initialize the logger (first things first)
 import logging
+import logging.config
 import os
 log_config_file = os.getenv('LOG_CONFIG_FILE', 'logging.ini')
 logging.config.fileConfig(log_config_file)
@@ -11,10 +12,11 @@ logger = logging.getLogger(__name__)
 
 from pydantic import BaseModel
 from typing import Optional
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException, Security
+from fastapi.security.api_key import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_403_FORBIDDEN
 from starlette.responses import JSONResponse
 import uvicorn
 
@@ -56,6 +58,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 logger.info(f"Allowed origins: {origins}")
+
+# Adding API key validation middleware
+api_keys_file = os.getenv('API_KEYS_FILE')
+valid_api_keys = []
+if api_keys_file:
+    logger.info(f"Loading API keys from file:{api_keys_file}")
+    with open(api_keys_file, "r") as file:
+        valid_api_keys = [line.strip() for line in file]
+api_key_header = APIKeyHeader(name="x-api-key", auto_error=False)
+async def check_api_key(api_key_header: str = Security(api_key_header)):
+    if api_keys_file and api_key_header not in valid_api_keys:
+        raise HTTPException(
+            status_code=HTTP_403_FORBIDDEN, detail="Invalid API Key"
+        )
+    return api_key_header
 
 # Adding exception handling middleware
 @app.exception_handler(Exception)
@@ -102,7 +119,7 @@ class FaceDeleteResponse(BaseModel):
     name: str
     image_base64: str
 
-@app.post("/identify_faces", description="Locates and identifies the faces in an image")
+@app.post("/identify_faces", dependencies=[Depends(check_api_key)], description="Locates and identifies the faces in an image")
 async def identify_faces(request: FaceIdentificationRequest):
     identified_faces = fr.recognize_faces_in_image(request.image_base64)
     response = []
@@ -115,7 +132,7 @@ async def identify_faces(request: FaceIdentificationRequest):
         ))
     return response
 
-@app.post("/save_face", description="Saves a face image for a person to the known faces database, or an unknown face if the name is not provided, or it is 'unknown'")
+@app.post("/save_face", dependencies=[Depends(check_api_key)], description="Saves a face image for a person to the known faces database, or an unknown face if the name is not provided, or it is 'unknown'")
 async def save_face(request: FaceSaveRequest):
     file_url = fr.save_face_image(request.image_base64, request.name)
     response = FaceResponse(
@@ -124,7 +141,7 @@ async def save_face(request: FaceSaveRequest):
     )
     return response
 
-@app.get("/get_images", description="Retrieves all the face images for a specific person, or all the unknown faces if no name is provided.")
+@app.get("/get_images", dependencies=[Depends(check_api_key)], description="Retrieves all the face images for a specific person, or all the unknown faces if no name is provided.")
 async def get_images(name: Optional[str] = None):
     images = fr.get_all_images(name)
     response = []
@@ -136,7 +153,7 @@ async def get_images(name: Optional[str] = None):
         ))
     return response
 
-@app.post("/delete_face", description="Deletes a face image from the known or unknown faces database")
+@app.post("/delete_face", dependencies=[Depends(check_api_key)], description="Deletes a face image from the known or unknown faces database")
 async def delete_face(request: FaceDeleteRequest):
     image = fr.delete_image(request.face_image_url)
     response = FaceDeleteResponse(
@@ -146,7 +163,7 @@ async def delete_face(request: FaceDeleteRequest):
     )
     return response
 
-@app.post("/label_face", description="Labels an unknown face image with a name once they have been identified, or re-labels an existing person if they have been misidentified (as known or unknown if no name is provided).")
+@app.post("/label_face", dependencies=[Depends(check_api_key)], description="Labels an unknown face image with a name once they have been identified, or re-labels an existing person if they have been misidentified (as known or unknown if no name is provided).")
 async def label_face(request: FaceLabelRequest):
     new_file_path = fr.label_image(request.face_image_url, request.name)
     response = FaceResponse(
