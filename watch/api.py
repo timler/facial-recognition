@@ -23,7 +23,6 @@ import uvicorn
 
 from watch.facial_recognition import FacialRecognition
 
-
 # Facial Recognition Configuration
 model = os.getenv('MODEL', 'default')  # "default" or "cnn" (cnn requires more GPU)
 tolerance = float(os.getenv('TOLERANCE', '0.6'))  # Lower values make the recognition more strict, default is 0.6
@@ -52,12 +51,14 @@ app = FastAPI(root_path=api_root_path, docs_url=docs_swagger_url, redoc_url=docs
 # Add CORS middleware headers
 allowed_origins = os.getenv('ALLOWED_ORIGINS', '*')
 origins = [origin.strip() for origin in allowed_origins.split(',')]
+methods = ["*"]
+headers = ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=methods,
+    allow_headers=headers,
 )
 logger.info(f"Allowed origins: {origins}")
 
@@ -84,6 +85,11 @@ async def custom_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": f"An error occurred: {str(exc)}"},
+        headers={
+            "Access-Control-Allow-Origin": origins,
+            "Access-Control-Allow-Methods": methods,
+            "Access-Control-Allow-Headers": headers,
+        },
     )
 
 # Define the request/response body models
