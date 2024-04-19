@@ -114,7 +114,7 @@ def test_save_face():
     response_data = response.json()
     face_url = response_data["face_image_url"]
     assert face_url is not None
-    assert re.search(r"John Doe/John Doe_\d+\.jpg", face_url) is not None
+    assert re.search(r"john doe/john doe_\d+\.jpg", face_url) is not None
     assert response_data["name"] == "John Doe"
 
     # Cleanup
@@ -143,7 +143,7 @@ def test_label_face():
     response_data = response.json()
     face_url = response_data["face_image_url"]
     assert face_url is not None
-    assert re.search(r"Jane Doe/Jane Doe_\d+\.jpg", face_url) is not None
+    assert re.search(r"jane doe/jane doe_\d+\.jpg", face_url) is not None
     assert response_data["name"] == "Jane Doe"
     assert os.path.exists(os.path.join(face_database_dir, face_url))
     assert not os.path.exists(unknown_image_path)
@@ -227,11 +227,11 @@ def test_get_images_with_name_known():
     assert isinstance(response_data, list)
     assert len(response_data) == 2
     assert response_data[0]["name"] == "Dagmar Timler"
-    assert response_data[0]["face_image_url"] == "known/Dagmar Timler/Dagmar Timler_152848.jpg"
+    assert response_data[0]["face_image_url"] == "known/dagmar timler/dagmar timler_152848.jpg"
     assert response_data[0]["image_base64"] is not None
     assert response_data[0]["image_base64"].startswith("data:image/jpeg;base64,")
     assert response_data[1]["name"] == "Dagmar Timler"
-    assert response_data[1]["face_image_url"] == "known/Dagmar Timler/Dagmar Timler_221849.jpg"
+    assert response_data[1]["face_image_url"] == "known/dagmar timler/dagmar timler_221849.jpg"
     assert response_data[1]["image_base64"] is not None
     assert response_data[1]["image_base64"].startswith("data:image/jpeg;base64,")
 
