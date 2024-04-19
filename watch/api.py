@@ -51,14 +51,12 @@ app = FastAPI(root_path=api_root_path, docs_url=docs_swagger_url, redoc_url=docs
 # Add CORS middleware headers
 allowed_origins = os.getenv('ALLOWED_ORIGINS', '*')
 origins = [origin.strip() for origin in allowed_origins.split(',')]
-methods = ["*"]
-headers = ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=methods,
-    allow_headers=headers,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 logger.info(f"Allowed origins: {origins}")
 
@@ -86,9 +84,9 @@ async def custom_exception_handler(request: Request, exc: Exception):
         status_code=HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": f"An error occurred: {str(exc)}"},
         headers={
-            "Access-Control-Allow-Origin": origins,
-            "Access-Control-Allow-Methods": methods,
-            "Access-Control-Allow-Headers": headers,
+            "Access-Control-Allow-Origin": request.headers.get('Origin', ''),
+            "Access-Control-Allow-Methods": request.headers.get('Access-Control-Request-Method', ''),
+            "Access-Control-Allow-Headers": request.headers.get('Access-Control-Request-Headers', ''),
         },
     )
 
