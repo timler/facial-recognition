@@ -48,6 +48,10 @@ if docs_redoc_url is not None:
 # Create the FastAPI app
 app = FastAPI(root_path=api_root_path, docs_url=docs_swagger_url, redoc_url=docs_redoc_url)
 
+# mount the face database directory as a static directory
+app.mount("/images", StaticFiles(directory=face_database_dir), name="images")
+logger.info(f"Mounted face database directory `{face_database_dir}` at /images")
+
 # Add CORS middleware headers
 allowed_origins = os.getenv('ALLOWED_ORIGINS', '*')
 origins = [origin.strip() for origin in allowed_origins.split(',')]
@@ -194,5 +198,4 @@ async def label_face(request: FaceLabelRequest):
     return response
 
 if __name__ == "__main__":
-    app.mount("/images", StaticFiles(directory=face_database_dir), name="images")
-    uvicorn.run(app, host=api_host, port=api_port)
+    uvicorn.run(app, host=api_host, port=api_port, access_log=True, log_level="debug")
