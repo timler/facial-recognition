@@ -1,11 +1,8 @@
-import os
-from io import BytesIO
 import face_recognition
 import logging
-import cv2
-import random
 
 import watch.image_converter as image_converter
+from watch.face_database import FaceDatabase
 
 # Initialize the logger
 logger = logging.getLogger(__name__)
@@ -22,40 +19,23 @@ class FacialRecognition:
         """
         self.model = model
         self.tolerance = tolerance
-        self.face_database_dir = face_database_dir
-        self.known_face_encodings = []
-        self.known_face_names = []
-        self.known_face_filenames = []
+        self.face_database = FaceDatabase(face_database_dir)
+        self._encode_known_faces()
 
-        # Initialise the face database
-        self._load_known_faces()
-
-    def _load_known_faces(self):
+    def _encode_known_faces(self):
         """
-        Loads the known faces from the specified directory and returns the encodings, names and filenames.
+        Encodes the known faces in the face database.
         """
         self.known_face_encodings = []
-        self.known_face_names = []
-        self.known_face_filenames = []
-        known_faces_dir = os.path.join(self.face_database_dir, "known")
-        logger.info(f"Loading known faces in {known_faces_dir}...")
-        os.makedirs(known_faces_dir, exist_ok=True)
-        for person_dir in os.listdir(known_faces_dir):
-            person_path = os.path.join(known_faces_dir, person_dir)
-            if os.path.isdir(person_path):
-                logger.debug(f"Loading faces for {person_dir}")
-                for filename in os.listdir(person_path):
-                    filename = filename
-                    if filename.endswith(".jpg") or filename.endswith(".png") or filename.endswith(".jpeg") or filename.endswith(".webp"):
-                        logger.debug(f"Loading {filename}")
-                        face_image = face_recognition.load_image_file(os.path.join(person_path, filename))
-                        face_encodings = face_recognition.face_encodings(face_image, model=self.model)
-                        if len(face_encodings) == 0:
-                            logger.info(f"No face found in {os.path.join(person_path, filename)}")
-                            continue
-                        self.known_face_encodings.append(face_encodings[0])
-                        self.known_face_names.append(person_dir.title())
-                        self.known_face_filenames.append(filename)
+        for index, filename in enumerate(self.face_database.known_face_file_urls):
+            file = self.face_database.get_actual_file_path_from_url(filename)
+            face_image = face_recognition.load_image_file(file)
+            face_encodings = face_recognition.face_encodings(face_image, model=self.model)
+            if len(face_encodings) == 0:
+                logger.info(f"No face found in {file}")
+                self.face_database.remove_face_at_index(index)
+            else:
+                self.known_face_encodings.append(face_encodings[0])
 
     def _distance_to_confidence(self, distance, max_distance=1.0):
         """
@@ -66,7 +46,7 @@ class FacialRecognition:
         confidence_percentage = round(confidence * 100)
         return confidence_percentage
 
-    def _crop_image_to_face(self, img, face_location, margin=20):
+    def _crop_image_to_face(self, img, face_location, margin=100):
         """
         Crops the image to the specified face location with an optional margin.
         """
@@ -132,8 +112,9 @@ class FacialRecognition:
 
             # If a match is found, set the identified face details
             if best_match_index >= 0 and matches[best_match_index]:
-                identified_name = self.known_face_names[best_match_index]
-                matched_face_filename = os.path.join(self.face_database_dir, "known", identified_name.lower(), self.known_face_filenames[best_match_index])
+                identified_name = self.face_database.get_face_name(best_match_index)
+                idenfitied_file_url = self.face_database.get_face_file_url(best_match_index)
+                matched_face_filename = self.face_database.get_actual_file_path_from_url(idenfitied_file_url)
                 confidence = self._distance_to_confidence(face_distances[best_match_index])
                 identified_face["name"] = identified_name
                 identified_face["matching_image"] = image_converter.image_file_to_base64(matched_face_filename)
@@ -168,30 +149,22 @@ class FacialRecognition:
         face_encodings = face_recognition.face_encodings(image_array, model=self.model)
         if len(face_encodings) == 0:
             raise Exception("No face found in the image")
-        
-        # Crop the image to the face location
         img_face_locations = face_recognition.face_locations(image_array, model=self.model)
         if len(img_face_locations) == 0:
             raise Exception("No face found in the image")
+        if len(img_face_locations) > 1:
+            raise Exception("Multiple faces found in the image. Please use cropped images with only one face.")
+        
+        # Crop the image to the face location
         face_image_array = self._crop_image_to_face(image_array, img_face_locations[0])
         
-        # Save the image to the specified directory
-        name = name.lower().strip()
-        filename = f"{name}_{random.randint(0, 1000000)}.jpg"
-        sub_folder = "unknown" if name == "unknown" else os.path.join("known", name)
-        full_path = os.path.join(self.face_database_dir, sub_folder)
-        os.makedirs(full_path, exist_ok=True)
-        file_path = os.path.join(full_path, filename)
-        face_image_bgr = cv2.cvtColor(face_image_array, cv2.COLOR_RGB2BGR)
-        cv2.imwrite(file_path, face_image_bgr)
-        logger.info(f"Saved new face to {file_path}")
+        # Save the face image to the face database
+        file_path = self.face_database.save_face_image(name, face_image_array)
 
         # Add the new face to the known faces
         self.known_face_encodings.append(face_encodings[0])
-        self.known_face_names.append(name.title())
-        self.known_face_filenames.append(filename)
 
-        return os.path.join(sub_folder, filename)
+        return file_path
 
     def label_image(self, face_image_url, name):
         """
@@ -207,35 +180,9 @@ class FacialRecognition:
         Raises:
             Exception: If the specified image is not found in the face database directory.
         """
-        if os.path.exists(os.path.join(self.face_database_dir, face_image_url)):
-            # Determine the sub-folder to save the image
-            if name is None or name == "" or name.strip() == "unknown":
-                sub_folder = "unknown"
-            else:
-                name = name.lower().strip()
-                sub_folder = os.path.join("known", name)
-            path = os.path.join(self.face_database_dir, sub_folder)
-            os.makedirs(path, exist_ok=True)
-
-            # Move the image to the specified directory
-            old_file_path = os.path.join(self.face_database_dir, face_image_url)
-            new_filename = f"{name}_{random.randint(0, 1000000)}.jpg"
-            new_file_path = os.path.join(path, new_filename)
-            os.rename(old_file_path, new_file_path)
-            logger.info(f"Labeled image {old_file_path} as {new_file_path}")
-
-            # Reload the known faces
-            self._load_known_faces()
-
-            return os.path.join(sub_folder, new_filename)
-        else:
-            raise Exception(f"Image {os.path.join(self.face_database_dir, face_image_url)} not found.")
-
-    def _get_name_from_filename(self, filename):
-        name = filename.split(".")[0].split("_")[0]
-        if name != "unknown":
-            name = name.title()
-        return name
+        new_url = self.face_database.label_image(face_image_url, name)
+        self._encode_known_faces() # Re-encode the known faces
+        return new_url
 
     def get_all_images(self, name):
         """
@@ -251,35 +198,24 @@ class FacialRecognition:
                 - "image_base64" (str): The base64-encoded image data.
 
         """
-        # Determine the sub-folder to search for images
-        if name is None or name == "" or name.strip() == "unknown":
-            sub_folder = "unknown"
-        else:
-            name = name.lower().strip()
-            sub_folder = os.path.join("known", name)
-        path = os.path.join(self.face_database_dir, sub_folder)
-
-        # Retrieve all the images in the specified directory
         images = []
-        if os.path.exists(path):
-            for filename in os.listdir(path):
-                if filename.endswith(".jpg") or filename.endswith(".png") or filename.endswith(".jpeg") or filename.endswith(".webp"):
-                    with open(os.path.join(path, filename), "rb") as f:
-                        images.append({
-                            "face_image_url": os.path.join(sub_folder, filename),
-                            "name": self._get_name_from_filename(filename),
-                            "image_base64": image_converter.image_file_to_base64(f)
-                        })
-        logger.info(f"Retrieved {len(images)} images for name: {name}")
+        image_file_urls = self.face_database.get_all_images(name)
+        for url in image_file_urls:
+            images.append({
+                "face_image_url": url,
+                "name": self.face_database.get_name_from_filename(url),
+                "image_base64": image_converter.image_file_to_base64(self.face_database.get_actual_file_path_from_url(url))
+            })
 
+        logger.info(f"Retrieved {len(images)} images for name: {name}")
         return images
 
-    def delete_image(self, filename):
+    def delete_image(self, face_image_url):
         """
         Deletes the specified image file.
 
         Parameters:
-        - filename: A string representing the name of the image file to be deleted.
+        - face_image_url: The URL of the image file to be deleted.
 
         Returns:
         - A dictionary containing the details of the deleted image:
@@ -290,17 +226,16 @@ class FacialRecognition:
         Raises:
         - Exception: If the image file specified by the filename does not exist.
         """
-        file_path = os.path.join(self.face_database_dir, filename)
-        if os.path.exists(file_path):
-            name = self._get_name_from_filename(os.path.basename(file_path))
-            image_base64 = image_converter.image_file_to_base64(file_path)
-            os.remove(file_path)
-            logger.info(f"Deleted image {file_path}")
-            self._load_known_faces() # Reload the known faces
+        if self.face_database.file_exists(face_image_url):
+            name = self.face_database.get_name_from_filename(face_image_url)
+            actual_file_path = self.face_database.get_actual_file_path_from_url(face_image_url)
+            image_base64 = image_converter.image_file_to_base64(actual_file_path)
+            self.face_database.delete_image(face_image_url)
+            self._encode_known_faces() # Re-encode the known faces
             return {
-                "face_image_url": filename,
+                "face_image_url": face_image_url,
                 "name": name,
                 "image_base64": image_base64
             }
         else:
-            raise Exception(f"Image {filename} not found.")
+            raise Exception(f"Image {face_image_url} not found.")
